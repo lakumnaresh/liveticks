@@ -1,130 +1,200 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
+ * LiveTicks - Real-time Data Streaming Application
+ * WebSocket integration with live chart visualization
  *
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useEffect} from 'react';
 import {
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+import {useWebSocket, usePauseToggle, useAppSettings} from './src/hooks/useWebSocket';
+import {useWebSocketStore} from './src/stores/websocket.store';
+import {LiveChart} from './src/components/LiveChart';
+import {StatusIndicator} from './src/components/StatusIndicator';
+import {ControlPanel} from './src/components/ControlPanel';
+import {ErrorBanner} from './src/components/ErrorBanner';
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  // Hooks
+  const {connectionStatus, dataPoints, error} = useWebSocket();
+  const {isPaused, togglePause} = usePauseToggle();
+  const {settings, updateSettings} = useAppSettings();
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  // Handle pause/resume through settings
+  useEffect(() => {
+    // This ensures data points respect pause state
+    // Already handled in WebSocket service via store
+  }, [isPaused]);
+
+  const handleChartTypeChange = (type: 'line' | 'bar') => {
+    updateSettings({chartType: type});
   };
 
-  /*
-   * To keep the template simple and small we're adding padding to prevent view
-   * from rendering under the System UI.
-   * For bigger apps the recommendation is to use `react-native-safe-area-context`:
-   * https://github.com/AppAndFlow/react-native-safe-area-context
-   *
-   * You can read more about it here:
-   * https://github.com/react-native-community/discussions-and-proposals/discussions/827
-   */
-  const safePadding = '5%';
+  const handleUpdateFrequencyChange = (frequency: number) => {
+    updateSettings({updateFrequency: frequency});
+  };
 
   return (
-    <View style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <ScrollView
-        style={backgroundStyle}>
-        <View style={{paddingRight: safePadding}}>
-          <Header/>
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>📊 LiveTicks</Text>
+          <Text style={styles.subtitle}>Real-time Data Streaming</Text>
         </View>
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-            paddingHorizontal: safePadding,
-            paddingBottom: safePadding,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+
+        {/* Connection Status */}
+        <View style={styles.statusContainer}>
+          <StatusIndicator status={connectionStatus} />
+        </View>
+
+        {/* Error Banner */}
+        <ErrorBanner message={error} />
+
+        {/* Live Chart */}
+        <LiveChart
+          data={dataPoints}
+          type={settings.chartType}
+          height={300}
+        />
+
+        {/* Current Value Display */}
+        {dataPoints.length > 0 && (
+          <View style={styles.currentValueContainer}>
+            <Text style={styles.currentLabel}>Current Value</Text>
+            <Text style={styles.currentValue}>
+              {dataPoints[dataPoints.length - 1].value.toFixed(2)}
+            </Text>
+            <Text style={styles.updateTimeLabel}>
+              Last updated: {new Date(
+                dataPoints[dataPoints.length - 1].timestamp,
+              ).toLocaleTimeString()}
+            </Text>
+          </View>
+        )}
+
+        {/* Control Panel */}
+        <ControlPanel
+          isPaused={isPaused}
+          onPauseToggle={togglePause}
+          chartType={settings.chartType}
+          onChartTypeChange={handleChartTypeChange}
+          updateFrequency={settings.updateFrequency}
+          onUpdateFrequencyChange={handleUpdateFrequencyChange}
+        />
+
+        {/* Info Section */}
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoTitle}>About</Text>
+          <Text style={styles.infoText}>
+            Connected to WebSocket server: {'\n'}
+            <Text style={styles.infoUrl}>wss://socketsbay.com/wss/v2/1/demo/</Text>
+          </Text>
+          <Text style={styles.infoText}>
+            {'\n'}Data points maintained: {dataPoints.length}/100
+          </Text>
+          <Text style={styles.infoText}>
+            Status: <Text style={{fontWeight: '600'}}>{connectionStatus}</Text>
+          </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
-  sectionTitle: {
-    fontSize: 24,
+  container: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 38,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  statusContainer: {
+    marginBottom: 12,
+  },
+  currentValueContainer: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 20,
+    marginVertical: 12,
+    alignItems: 'center',
+  },
+  currentLabel: {
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  currentValue: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#6366F1',
+    marginBottom: 8,
   },
-  highlight: {
+  updateTimeLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  infoContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 24,
+    marginBottom: 32,
+  },
+  infoTitle: {
+    fontSize: 14,
     fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  infoUrl: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontFamily: 'Menlo',
   },
 });
 
