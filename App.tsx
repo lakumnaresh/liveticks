@@ -101,7 +101,7 @@ function App(): React.JSX.Element {
           <Text style={styles.infoTitle}>About</Text>
           <Text style={styles.infoText}>
             Connected to WebSocket server: {'\n'}
-            <Text style={styles.infoUrl}>wss://socketsbay.com/wss/v2/1/demo/</Text>
+            <Text style={styles.infoUrl}>wss://stream.binance.com:9443/ws/btcusdt@trade</Text>
           </Text>
           <Text style={styles.infoText}>
             {'\n'}Data points maintained: {dataPoints.length}/100
