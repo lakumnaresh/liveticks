@@ -5,7 +5,7 @@ interface ErrorBannerProps {
   message: string | null;
 }
 
-export const ErrorBanner: React.FC<ErrorBannerProps> = ({message}) => {
+export const ErrorBanner: React.FC<ErrorBannerProps> = React.memo(({message}) => {
   if (!message) {
     return null;
   }
@@ -15,19 +15,23 @@ export const ErrorBanner: React.FC<ErrorBannerProps> = ({message}) => {
       <Text style={styles.text}>⚠️ {message}</Text>
     </View>
   );
-};
+});
+
+ErrorBanner.displayName = 'ErrorBanner';
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#3B1B1B',
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: '#F6465D',
     paddingHorizontal: 16,
     paddingVertical: 12,
     marginBottom: 12,
+    marginHorizontal: 8,
+    borderRadius: 6,
   },
   text: {
-    color: '#991B1B',
+    color: '#FF9FA3',
     fontSize: 13,
     fontWeight: '500',
   },

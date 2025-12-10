@@ -1,9 +1,21 @@
 import {useEffect} from 'react';
-import {useWebSocketStore} from '../stores/websocket.store';
+import {
+  useWebSocketStore,
+  selectConnectionStatus,
+  selectDataPoints,
+  selectError,
+  selectIsPaused,
+  selectSettings,
+} from '../stores/websocket.store';
 import {getWebSocketService} from '../services/websocket.service';
 
+/**
+ * Main hook - initiates WebSocket connection and provides core state
+ */
 export const useWebSocket = () => {
-  const store = useWebSocketStore();
+  const connectionStatus = useWebSocketStore(selectConnectionStatus);
+  const dataPoints = useWebSocketStore(selectDataPoints);
+  const error = useWebSocketStore(selectError);
 
   useEffect(() => {
     const wsService = getWebSocketService();
@@ -24,28 +36,47 @@ export const useWebSocket = () => {
   }, []);
 
   return {
-    connectionStatus: store.connectionStatus,
-    dataPoints: store.dataPoints,
-    error: store.error,
+    connectionStatus,
+    dataPoints,
+    error,
   };
 };
 
-export const useDataPoints = () => {
-  const {dataPoints} = useWebSocketStore();
-  return dataPoints;
+/**
+ * Optimized hook - returns only data points (prevents re-render on other state changes)
+ */
+export const useDataPointsOptimized = () => {
+  return useWebSocketStore(selectDataPoints);
 };
 
-export const useConnectionStatus = () => {
-  const {connectionStatus} = useWebSocketStore();
-  return connectionStatus;
+/**
+ * Optimized hook - returns only connection status
+ */
+export const useConnectionStatusOptimized = () => {
+  return useWebSocketStore(selectConnectionStatus);
 };
 
+/**
+ * Pause/Resume toggle hook
+ */
 export const usePauseToggle = () => {
-  const {isPaused, togglePause} = useWebSocketStore();
+  const isPaused = useWebSocketStore(selectIsPaused);
+  const togglePause = useWebSocketStore((state) => state.togglePause);
   return {isPaused, togglePause};
 };
 
+/**
+ * Error hook - returns only error state
+ */
+export const useError = () => {
+  return useWebSocketStore(selectError);
+};
+
+/**
+ * Settings hook for chart configuration
+ */
 export const useAppSettings = () => {
-  const {settings, updateSettings} = useWebSocketStore();
+  const settings = useWebSocketStore(selectSettings);
+  const updateSettings = useWebSocketStore((state) => state.updateSettings);
   return {settings, updateSettings};
 };

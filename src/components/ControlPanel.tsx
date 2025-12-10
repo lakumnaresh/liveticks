@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {
   View,
   TouchableOpacity,
@@ -17,7 +17,7 @@ interface ControlPanelProps {
   onUpdateFrequencyChange: (frequency: number) => void;
 }
 
-export const ControlPanel: React.FC<ControlPanelProps> = ({
+export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
   isPaused,
   onPauseToggle,
   chartType,
@@ -25,7 +25,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   updateFrequency,
   onUpdateFrequencyChange,
 }) => {
-  const frequencyOptions = [500, 1000, 2000];
+  const frequencyOptions = useMemo(() => [500, 1000, 2000], []);
+
+  // Memoized callbacks
+  const handleChartTypeChange = useCallback((type: ChartType) => {
+    onChartTypeChange(type);
+  }, [onChartTypeChange]);
+
+  const handleFrequencyChange = useCallback((freq: number) => {
+    onUpdateFrequencyChange(freq);
+  }, [onUpdateFrequencyChange]);
+
+  const chartTypes = useMemo(() => ['line', 'bar'] as ChartType[], []);
 
   return (
     <View style={styles.container}>
@@ -43,14 +54,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Chart Type</Text>
         <View style={styles.buttonGroup}>
-          {(['line', 'bar'] as ChartType[]).map((type) => (
+          {chartTypes.map((type) => (
             <TouchableOpacity
               key={type}
               style={[
                 styles.toggleButton,
                 chartType === type ? styles.activeToggle : styles.inactiveToggle,
               ]}
-              onPress={() => onChartTypeChange(type)}
+              onPress={() => handleChartTypeChange(type)}
             >
               <Text
                 style={[
@@ -76,7 +87,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 styles.frequencyButton,
                 updateFrequency === freq ? styles.activeFrequency : styles.inactiveFrequency,
               ]}
-              onPress={() => onUpdateFrequencyChange(freq)}
+              onPress={() => handleFrequencyChange(freq)}
             >
               <Text
                 style={[
@@ -92,14 +103,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       </View>
     </View>
   );
-};
+});
+
+ControlPanel.displayName = 'ControlPanel';
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#252B34',
     borderRadius: 12,
     padding: 16,
     marginVertical: 12,
+    marginHorizontal: 8,
+    borderWidth: 1,
+    borderColor: '#3B444F',
   },
   button: {
     paddingVertical: 12,
@@ -110,10 +126,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   activeButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#F6465D',
   },
   pausedButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#0ECB81',
   },
   buttonText: {
     color: '#FFFFFF',
@@ -124,9 +140,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#8F96A8',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -144,12 +160,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   activeToggle: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: '#5B9DEF',
+    borderColor: '#5B9DEF',
   },
   inactiveToggle: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D1D5DB',
+    backgroundColor: '#3B444F',
+    borderColor: '#5B6B7A',
   },
   toggleText: {
     fontSize: 13,
@@ -159,7 +175,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   inactiveText: {
-    color: '#6B7280',
+    color: '#8F96A8',
   },
   frequencyContainer: {
     flexDirection: 'row',
@@ -172,12 +188,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   activeFrequency: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
+    backgroundColor: '#5B9DEF',
+    borderColor: '#5B9DEF',
   },
   inactiveFrequency: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#D1D5DB',
+    backgroundColor: '#3B444F',
+    borderColor: '#5B6B7A',
   },
   frequencyText: {
     fontSize: 12,
@@ -187,6 +203,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   inactiveFreqText: {
-    color: '#6B7280',
+    color: '#8F96A8',
   },
 });

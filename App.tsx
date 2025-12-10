@@ -1,11 +1,16 @@
 /**
  * LiveTicks - Real-time Data Streaming Application
  * WebSocket integration with live chart visualization
+ * 
+ * Optimized for performance:
+ * - Uses memoized selectors to prevent unnecessary re-renders
+ * - Components memoized with React.memo
+ * - useCallback for event handlers
  *
  * @format
  */
 
-import React, {useEffect} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -16,39 +21,40 @@ import {
 } from 'react-native';
 
 import {useWebSocket, usePauseToggle, useAppSettings} from './src/hooks/useWebSocket';
-import {useWebSocketStore} from './src/stores/websocket.store';
+import {useConnectionStatusOptimized, useDataPointsOptimized, useError} from './src/hooks/useWebSocket';
 import {LiveChart} from './src/components/LiveChart';
 import {StatusIndicator} from './src/components/StatusIndicator';
 import {ControlPanel} from './src/components/ControlPanel';
 import {ErrorBanner} from './src/components/ErrorBanner';
 
 function App(): React.JSX.Element {
-  // Hooks
-  const {connectionStatus, dataPoints, error} = useWebSocket();
+  // Use optimized hooks to prevent unnecessary re-renders
+  useWebSocket(); // Initialize connection
+  
+  const connectionStatus = useConnectionStatusOptimized();
+  const dataPoints = useDataPointsOptimized();
+  const error = useError();
+  
   const {isPaused, togglePause} = usePauseToggle();
   const {settings, updateSettings} = useAppSettings();
 
-  // Handle pause/resume through settings
-  useEffect(() => {
-    // This ensures data points respect pause state
-    // Already handled in WebSocket service via store
-  }, [isPaused]);
-
-  const handleChartTypeChange = (type: 'line' | 'bar') => {
+  // Memoized callbacks to prevent recreating on every render
+  const handleChartTypeChange = useCallback((type: 'line' | 'bar') => {
     updateSettings({chartType: type});
-  };
+  }, [updateSettings]);
 
-  const handleUpdateFrequencyChange = (frequency: number) => {
+  const handleUpdateFrequencyChange = useCallback((frequency: number) => {
     updateSettings({updateFrequency: frequency});
-  };
+  }, [updateSettings]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#0F1419" />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
       >
         {/* Header */}
         <View style={styles.header}>
@@ -118,82 +124,89 @@ function App(): React.JSX.Element {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1419',
   },
   container: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 8,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 38,
+    marginBottom: 20,
+    marginTop: 20,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginBottom: 4,
+    letterSpacing: 1,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#8F96A8',
     fontWeight: '500',
   },
   statusContainer: {
     marginBottom: 12,
   },
   currentValueContainer: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#252B34',
     borderRadius: 12,
     padding: 20,
     marginVertical: 12,
+    marginHorizontal: 8,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3B444F',
   },
   currentLabel: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#8F96A8',
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   currentValue: {
-    fontSize: 36,
+    fontSize: 40,
     fontWeight: '800',
-    color: '#6366F1',
+    color: '#0ECB81',
     marginBottom: 8,
   },
   updateTimeLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: '#8F96A8',
     fontWeight: '500',
   },
   infoContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#252B34',
     borderRadius: 12,
     padding: 16,
-    marginVertical: 24,
+    marginVertical: 20,
+    marginHorizontal: 8,
     marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#3B444F',
   },
   infoTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#E8E8E8',
     marginBottom: 12,
   },
   infoText: {
     fontSize: 13,
-    color: '#4B5563',
+    color: '#BFC2C7',
     lineHeight: 20,
     marginBottom: 8,
   },
   infoUrl: {
     fontSize: 12,
-    color: '#6366F1',
+    color: '#5B9DEF',
     fontFamily: 'Menlo',
   },
 });

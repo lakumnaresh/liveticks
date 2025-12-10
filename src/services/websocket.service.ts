@@ -18,6 +18,10 @@ class WebSocketService {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private lastMessageTime: number = Date.now();
   private messageBuffer: string[] = [];
+  // Buffer parsed DataPoints and flush in batches to the store
+  private pointBuffer: DataPoint[] = [];
+  private flushIntervalMs = 100; // flush every 100ms (tuneable)
+  private flushTimer: NodeJS.Timeout | null = null;
   private isIntentionallyClosed = false;
 
   constructor(config: Partial<WebSocketConfig> = {}) {
@@ -46,6 +50,8 @@ class WebSocketService {
 
           // Start heartbeat
           this.startHeartbeat();
+          // Start flush timer for buffered points
+          this.startBufferFlush();
           resolve();
         };
 
@@ -88,7 +94,7 @@ class WebSocketService {
               value = parseFloat(String(event.data));
             }
 
-            // Validate the value and push to store
+            // Validate the value and push to local buffer (batch later)
             if (!isNaN(value)) {
               const dataPoint: DataPoint = {
                 timestamp: timestamp || Date.now(),
@@ -97,7 +103,13 @@ class WebSocketService {
 
               const store = useWebSocketStore.getState();
               if (!store.isPaused) {
-                store.addDataPoint(dataPoint);
+                // buffer locally; flush timer will commit batches to store
+                this.pointBuffer.push(dataPoint);
+                // safety: if buffer grows too large, flush immediately
+                if (this.pointBuffer.length >= (store.settings?.maxDataPoints || 100)) {
+                  const buffer = this.pointBuffer.splice(0, this.pointBuffer.length);
+                  useWebSocketStore.getState().addDataPoints(buffer);
+                }
               }
             }
           } catch (err) {
@@ -116,6 +128,8 @@ class WebSocketService {
         this.ws.onclose = () => {
           console.log('WebSocket closed');
           this.stopHeartbeat();
+          // Ensure any buffered points are flushed when the socket closes
+          this.stopBufferFlush();
 
           if (!this.isIntentionallyClosed) {
             this.handleReconnect();
@@ -185,9 +199,41 @@ class WebSocketService {
     }
   }
 
+  // Start periodic flush of buffered DataPoints to the store
+  private startBufferFlush(): void {
+    if (this.flushTimer) return;
+    this.flushTimer = setInterval(() => {
+      if (this.pointBuffer.length === 0) return;
+      const buffer = this.pointBuffer.splice(0, this.pointBuffer.length);
+      try {
+        useWebSocketStore.getState().addDataPoints(buffer);
+      } catch (err) {
+        console.warn('Failed to flush point buffer:', err);
+      }
+    }, this.flushIntervalMs);
+  }
+
+  private stopBufferFlush(): void {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+      this.flushTimer = null;
+    }
+    // flush remaining points synchronously
+    if (this.pointBuffer.length > 0) {
+      const buffer = this.pointBuffer.splice(0, this.pointBuffer.length);
+      try {
+        useWebSocketStore.getState().addDataPoints(buffer);
+      } catch (err) {
+        console.warn('Failed to flush point buffer on stop:', err);
+      }
+    }
+  }
+
   disconnect(): void {
     this.isIntentionallyClosed = true;
     this.stopHeartbeat();
+    // Flush and stop the buffer flush timer when intentionally disconnecting
+    this.stopBufferFlush();
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

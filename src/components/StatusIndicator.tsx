@@ -6,15 +6,15 @@ interface StatusIndicatorProps {
   status: ConnectionStatus;
 }
 
-export const StatusIndicator: React.FC<StatusIndicatorProps> = ({status}) => {
+export const StatusIndicator: React.FC<StatusIndicatorProps> = React.memo(({status}) => {
   const getStatusColor = () => {
     switch (status) {
       case 'connected':
-        return '#10B981';
+        return '#0ECB81';
       case 'reconnecting':
         return '#F59E0B';
       case 'disconnected':
-        return '#EF4444';
+        return '#F6465D';
       default:
         return '#6B7280';
     }
@@ -44,7 +44,9 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({status}) => {
       <Text style={styles.text}>{getStatusLabel()}</Text>
     </View>
   );
-};
+});
+
+StatusIndicator.displayName = 'StatusIndicator';
 
 const styles = StyleSheet.create({
   container: {
@@ -52,16 +54,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    marginHorizontal: 8,
+    backgroundColor: '#252B34',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3B444F',
   },
   indicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
   },
   text: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#E8E8E8',
   },
 });
